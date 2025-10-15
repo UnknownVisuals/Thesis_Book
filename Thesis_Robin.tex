@@ -1,0 +1,134 @@
+ % Created by Robin Sinurat (Modified from LaTeX Arini)
+% The University Center of Excellence for Advanced Intelligent Communications (AICOMS),
+% Telkom University, Bandung, INDONESIA
+% 26 March 2022
+
+% Ukuran font 12pt
+\documentclass[12pt, a4paper, onecolumn, oneside, final]{report}
+% Load konfigurasi LaTeX untuk tipe laporan thesis
+\usepackage{ta}
+\usepackage{longtable}
+\usepackage{tikz}
+\usepackage{graphics}
+\usepackage{subcaption}
+\usepackage{times}
+\usepackage{graphicx}
+\usepackage[square,numbers,comma,sort,compress]{natbib}\usepackage{titlesec}
+\usepackage{amsmath}
+\usepackage{appendix}
+\onehalfspacing
+\usepackage{hyperref} 
+\usepackage{xcolor,colortbl}
+\usepackage{multicol}
+\usepackage[graphicx]{realboxes}
+\usepackage[nodayofweek]{datetime}
+\usepackage{multirow}
+
+\renewcommand{\contentsname}{CONTENTS}
+\renewcommand{\chaptername}{CHAPTER}
+\renewcommand{\listfigurename}{LIST OF FIGURES}
+\renewcommand{\listtablename}{LIST OF TABLES}
+\renewcommand{\appendixname}{APPENDIX}
+\renewcommand{\bibname}{REFERENCES}
+\renewcommand{\figurename}{Fig.}
+
+\usepackage[labelsep=space]{caption} % to remove colon after figure
+%\captionsetup{labelsep = period}
+\captionsetup{labelsep=separatorbaru}
+%\usepackage{array}
+\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}} % to remove colon after figure
+
+% Load konfigurasi khusus untuk laporan yang sedang dibuat
+\input{konfigurasi}
+
+% Awal bagian penulisan laporan
+\begin{document}
+
+% Sampul Laporan
+\include{sampul}
+
+% Tidak mengaktifkan penomoran halaman
+\pagenumbering{gobble}
+
+% Halaman pengesahan
+\addChapter{APPROVAL PAGE}
+\include{pengesahan}
+
+% Halaman pernyataan orisinalitas
+\addChapter{SELF DECLARATION AGAINST PLAGIARISM}
+\include{orisinalitas}
+
+% Menggunakan penomoran halaman Romawi
+\pagenumbering{roman}
+
+% Setelah bagian ini, halaman dihitung sebagai halaman ke-2
+\setcounter{page}{4}
+
+% Abstrak dalam Bahasa Inggris
+\addChapter{ABSTRACT}
+\include{abstract3}
+
+% Ucapan Terima Kasih
+\addChapter{ACKNOWLEDGEMENTS}
+\include{ucapan}
+
+% Kata Pengantar
+\addChapter{\kataPengantar}
+\include{pengantar}
+
+% Daftar Isi
+\tableofcontents
+\clearpage
+
+% Daftar Gambar
+\listoffigures
+\clearpage
+
+% Daftar Tabel
+\listoftables
+\clearpage
+
+% Daftar Lampiran
+\addChapter{LIST OF ABBREVIATION}
+\include{singkatan}
+
+% Daftar Lampiran
+\addChapter{LIST OF SYMBOL}
+\include{symbol}
+
+% Daftar Achievement
+\addChapter{ACHIEVEMENT}
+\include{achievement}
+
+% Gunakan penomeran Arab (1, 2, 3, ...) setelah bagian ini.
+\pagenumbering{arabic}
+
+% Bab 1 : Pendahuluan
+\include{bab1}
+%
+% Bab 2 : Dasar Teori
+\include{bab2}
+%
+% Bab 3 : Perancangan
+\include{bab3}
+
+% Bab 4 : Pengujian
+\include{bab4}
+
+% Bab 5 : Kesimpulan dan Saran
+\include{bab5}
+%
+\bibliographystyle{IEEEtran}
+\bibliography{ref_database}
+%\newpage
+% Lampiran 
+%\begin{appendix}
+%	\pagenumbering{arabic}
+%	\include{markLampiran}
+%%	\input{appendices_IEEE}
+%	\input{appendices}
+%	%\setcounter{page}{2}
+%\end{appendix}
+\end{document}
