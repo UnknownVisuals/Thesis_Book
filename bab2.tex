@@ -1,105 +1,135 @@
 %----------------------------------------------------------------------
 \chapter{\babDua}
 %--------------------------------------------------------
-This chapter establishes the theoretical and architectural foundations requisite for understanding the proposed enhancements to the YOLO11 framework. It provides an exhaustive examination of the evolution of object detection paradigms, delineating the unique pathological challenges associated with detecting small, arbitrarily oriented objects in aerial imagery. Furthermore, this chapter presents a rigorous mathematical treatment of Convolutional Neural Networks (CNNs), the architectural specifics of YOLO11, and the adaptive mechanisms of Deformable Convolution Networks (DCN) and Deformable Attention, which constitute the core technical contributions of this thesis.
+This chapter discusses the theoretical and architectural foundations necessary for comprehending the proposed enhancements to the YOLO11 framework. It provides an overview of the evolution of object detection paradigms, highlighting the unique challenges associated with detecting small, arbitrarily oriented objects in aerial imagery. Additionally, this chapter presents a detailed explanation of Convolutional Neural Networks (CNNs), the architectural specifics of YOLO11, and the adaptive mechanisms of Deformable Convolution Networks (DCN) and Deformable Attention, which form the core technical contributions of this thesis.
 
 \section{Object Detection}
-Object detection stands as one of the most fundamental and challenging problems in the field of computer vision. Unlike image classification, which assigns a single label to an entire image, or semantic segmentation, which classifies pixels without differentiating object instances, object detection requires the simultaneous localization and classification of multiple objects within a scene \cite{zou2023object, liu2020deep}. The primary objective is to predict a set of bounding boxes—rectangular delineations of object boundaries—and associate a class probability score with each box. The complexity of this task is compounded in remote sensing and aerial surveillance domains, where varying altitudes, sensor angles, and environmental conditions introduce significant geometric variability \cite{zou2023object, Nikouei_2025}.
+Object detection stands as one of the most fundamental and challenging problems in the field of computer vision. Unlike image classification, which assigns a single label to an entire image, or semantic segmentation, which classifies pixels without differentiating object instances, object detection requires the simultaneous localization and classification of multiple objects within a scene~\cite{zou2023object, liu2020deep}. The primary objective is to predict a set of bounding boxes, a rectangular delineations of object boundaries and associate a class probability score within each box. The complexity of this task is compounded in remote sensing and aerial surveillance domains, where varying altitudes, sensor angles, and environmental conditions introduce significant geometric variability~\cite{zou2023object, Nikouei_2025}.
 
 \subsection{Small Object Detection}
-The detection of small objects represents a specialized and pathological sub-domain within computer vision. While general object detection on datasets like MS COCO achieves high performance, accuracy degrades precipitously as object size decreases. This is particularly critical in aerial imagery, where the combination of high altitude and wide field-of-view results in targets of interest—such as vehicles, pedestrians, or small maritime vessels—occupying a minute fraction of the pixel space \cite{liu2020deep, Cheng_2023}.
+The detection of small objects represents a specialized sub-domain within computer vision. While general object detection on datasets like MS COCO achieves high performance, accuracy degrades precipitously as object size decreases. This is particularly critical in aerial imagery, where the combination of high altitude and wide field-of-view results in targets of interest, such as vehicles, pedestrians, or small maritime vessels occupying a very small fraction of the pixel space~\cite{liu2020deep, Cheng_2023}. Figure~\ref{fig:small-object-detection} illustrates typical scenarios where small object detection is required, highlighting the challenges posed by limited pixel representation and contextual ambiguity.
 
-\textbf{Defining ``Small'' Objects} \\
-The definition of a ``small object'' is contingent upon the application context and the dataset standards:
+\begin{figure}
+    \centering
+    \includegraphics[width=1.0\textwidth]{pictures/Object Detection - Small.png}
+    \caption{Examples of small object detection challenges in aerial imagery}\label{fig:small-object-detection}
+\end{figure}
+
+The definition of a ``small object'' is broadly dependent upon the application context and the dataset standards:
 \begin{enumerate}
-    \item \textbf{Absolute Scale (MS COCO Definition):} The most widely accepted definition comes from the MS COCO evaluation protocol, which categorizes objects with a spatial area of less than $32 \times 32$ pixels as small ($area < 1024$ pixels) \cite{lin2014microsoft, Cheng_2023}.
-    \item \textbf{Relative Scale (SPIE Definition):} The Society of Photo-Optical Instrumentation Engineers (SPIE) defines small objects based on the image coverage ratio. An object is considered small if it occupies less than 0.12\% of the total image area (e.g., roughly $9 \times 9$ pixels in a $256 \times 256$ image) \cite{Nikouei_2025}.
-    \item \textbf{Aerial-Specific Scale (AI-TOD):} In specialized aerial datasets like AI-TOD, the definition is even more stringent, with the average object size often being around 12.8 pixels, significantly smaller than the COCO standard \cite{wang2021aitod}.
+    \item \textbf{Absolute Scale (MS COCO Definition):} The most widely accepted definition comes from the MS COCO evaluation protocol, which categorizes objects with a spatial area of less than $32 \times 32$ pixels as small ($area < 1024$ pixels)~\cite{lin2014microsoft, Cheng_2023}.
+    \item \textbf{Relative Scale (SPIE Definition):} The Society of Photo-Optical Instrumentation Engineers (SPIE) defines small objects based on the image coverage ratio. An object is considered small if it occupies less than 0.12\% of the total image area (e.g., roughly $9 \times 9$ pixels in a $256 \times 256$ image)~\cite{Nikouei_2025}.
+    \item \textbf{Aerial-Specific Scale (AI-TOD):} In specialized aerial datasets like AI-TOD, the definition is even more stringent, with the average object size often being around 12.8 pixels, significantly smaller than the COCO standard~\cite{wang2021aitod}.
 \end{enumerate}
 
-\textbf{Challenges in Feature Extraction and Representation} \\
 The difficulty in detecting small objects stems from fundamental limitations in the architecture of Convolutional Neural Networks (CNNs), specifically related to feature hierarchy and resolution.
 
 \begin{itemize}
-    \item \textbf{Feature Vanishing and Dilution:} Deep CNNs rely on successive downsampling operations (strided convolutions or pooling) to increase the Receptive Field (RF) and abstract high-level semantic features. A standard backbone (e.g., ResNet or CSPDarknet) typically has a total stride of 32 ($S=32$). This means an input image of size $640 \times 640$ is reduced to a feature map of $20 \times 20$. Under this transformation, a small object of size $16 \times 16$ pixels in the input is theoretically mapped to an area of $0.5 \times 0.5$ pixels in the final feature map \cite{Nikouei_2025, CHEN2024117194}. In practice, this sub-pixel representation means the object's spatial information is effectively aggregated into a single feature vector mixed with surrounding background information, leading to severe feature dilution or complete vanishing of the signal \cite{rekavandi2023transformerssmallobjectdetection, CHEN2024117194}.
-    \item \textbf{Low Signal-to-Noise Ratio (SNR):} Small objects possess very few constituent pixels, limiting the visual information available for the network to learn discriminative features. Unlike large objects that exhibit rich internal textures and clear geometric structures (edges, corners), small objects often appear as amorphous blobs \cite{Nikouei_2025, CHEN2024117194}. This feature scarcity makes them highly susceptible to background clutter; a small rock or a patch of texture can easily be misclassified as a vehicle due to the lack of distinguishing details \cite{YOLO-Air_10980347}.
-    \item \textbf{Occlusion and Dense Clustering:} In aerial imagery, small objects often appear in dense clusters (e.g., a parking lot full of cars or a flotilla of ships). The overlap between valid objects and the interference from the background complicates the bounding box regression. Standard Intersection over Union (IoU) metrics are highly sensitive to small positional shifts for small objects; a misalignment of just a few pixels can result in a zero IoU score, destabilizing the training process \cite{Nikouei_2025, yang2020r3detrefinedsinglestagedetector}.
-    \item \textbf{Context Dependence:} Because intrinsic features are weak, the detection of small objects relies heavily on contextual cues (e.g., a car is likely on a road, a ship is likely in water). However, standard CNN operations with fixed receptive fields may fail to capture this global context effectively if the object is isolated or the background is heterogeneous \cite{rekavandi2023transformerssmallobjectdetection, CHEN2024117194}.
+    \item \textbf{Feature Vanishing and Dilution:} Deep CNNs rely on successive downsampling operations (strided convolutions or pooling) to increase the Receptive Field (RF) and abstract high-level semantic features. A standard backbone (e.g., ResNet or CSPDarknet) typically has a total stride of 32 ($S=32$). This means an input image of size $640 \times 640$ is reduced to a feature map of $20 \times 20$. Under this transformation, a small object of size $16 \times 16$ pixels in the input is theoretically mapped to an area of $0.5 \times 0.5$ pixels in the final feature map~\cite{Nikouei_2025, CHEN2024117194}. In practice, this sub-pixel representation means the object's spatial information is effectively aggregated into a single feature vector mixed with surrounding background information, leading to severe feature dilution or complete vanishing of the signal~\cite{rekavandi2023transformerssmallobjectdetection, CHEN2024117194}.
+    \item \textbf{Low Signal-to-Noise Ratio (SNR):} Small objects possess very few pixels, limiting the visual information available for the network to learn discriminative features. Unlike large objects that exhibit rich internal textures and clear geometric structures (edges, corners), small objects often appear as amorphous blobs~\cite{Nikouei_2025, CHEN2024117194}. This feature scarcity makes them highly susceptible to background clutter; a small rock or a patch of texture can easily be misclassified as a vehicle due to the lack of distinguishing details~\cite{YOLO-Air_10980347}.
+    \item \textbf{Occlusion and Dense Clustering:} In aerial imagery, small objects often appear in dense clusters (e.g., a parking lot full of cars or a dock full of boats). The overlap between valid objects and the interference from the background complicates the bounding box regression. Standard Intersection over Union (IoU) metrics are highly sensitive to small positional shifts for small objects, a misalignment of just a few pixels can result in a zero IoU score, destabilizing the training process~\cite{Nikouei_2025, yang2020r3detrefinedsinglestagedetector}.
+    \item \textbf{Context Dependence:} Because intrinsic features are weak, the detection of small objects relies heavily on contextual cues (e.g., a car is likely on a road, a ship is likely in water). However, standard CNN operations with fixed receptive fields may fail to capture this global context effectively if the object is isolated or the background is heterogeneous~\cite{rekavandi2023transformerssmallobjectdetection, CHEN2024117194}.
 \end{itemize}
 
+Addressing these challenges requires architectural innovations that preserve high-resolution features, enhance feature extraction adaptively, and incorporate contextual reasoning. The subsequent sections will explore how Deformable Convolution Networks and Deformable Attention mechanisms can be integrated into the YOLO11 framework to specifically tackle the intricacies of small object detection in aerial imagery.
+
 \subsection{Oriented Object Detection}
-Traditional object detection systems rely on Horizontal Bounding Boxes (HBB), parameterized by $(x_{min}, y_{min}, x_{max}, y_{max})$ or $(x_c, y_c, w, h)$. While sufficient for ground-level photography where gravity imposes a natural vertical orientation on most objects, HBBs are fundamentally inadequate for aerial and satellite imagery \cite{liu2020deep, ding2019learning}.
+Traditional object detection systems rely on Horizontal Bounding Boxes (HBB), parameterized by $(x_{\min}, y_{\min}, x_{\max}, y_{\max})$ or $(x_c, y_c, w, h)$. While sufficient for ground-level photography where gravity imposes a natural vertical orientation on most objects, HBBs are fundamentally inadequate for aerial and satellite imagery~\cite{liu2020deep, ding2019learning}.
 
-\textbf{Geometric Mismatch and the HBB Limitation} 
-In top-down aerial views, objects have an additional degree of freedom: rotation. A ship or vehicle can point in any direction, so axis-aligned bounding boxes either include excessive background or misalign the target, which makes IoU scores unreliable even when the localization is correct \cite{ding2019learning, xia2019dotalargescaledatasetobject}. The predominance of arbitrary orientations in aerial data renders Horizontal Bounding Boxes inadequate; instead, oriented rectangles—parameterized by center coordinates, width, height, and rotation angle—are preferred for tight localization.
+In top-down aerial views, objects have an additional degree of freedom that is rotation. A ship or vehicle can point in any direction, so axis-aligned bounding boxes either include excessive background or misalign the target, which makes IoU scores unreliable even when the localization is correct~\cite{ding2019learning, xia2019dotalargescaledatasetobject}. The predominance of arbitrary orientations in aerial data renders Horizontal Bounding Boxes inadequate. Instead, oriented rectangles parameterized by center coordinates, width, height, and rotation angle are preferred for tight localization. Figure~\ref{fig:obb-vs-hbb} illustrates the difference between Oriented Bounding Boxes (OBB) and Horizontal Bounding Boxes (HBB) in aerial imagery.
 
-\subsection{Deformable Convolution}
+\begin{figure}
+    \centering
+    \includegraphics[width=1.0\textwidth]{pictures/Object Detection - Oriented Bounding Box.jpg}
+    \caption{Comparison between (a) Oriented Bounding Box (OBB) and (b) Horizontal Bounding Box (HBB) in aerial imagery}\label{fig:obb-vs-hbb}
+\end{figure}
+
+\section{YOLO11 Model}
+The YOLO 11 model is a state-of-the-art single-stage object detection framework that builds upon the foundational principles of the YOLO (You Only Look Once) series. It is designed to achieve real-time detection speeds while maintaining high accuracy, making it suitable for applications requiring rapid inference, such as aerial surveillance and autonomous navigation~\cite{}. YOLO11 introduces several architectural enhancements over its predecessors, including improved backbone networks for feature extraction, advanced neck designs for multi-scale feature fusion, and refined head structures for precise bounding box regression and classification~\cite{}. Figure~\ref{fig:yolo11-architecture} illustrates the overall architecture of the YOLO11 model.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.7\textwidth]{pictures/Proposal Thesis - YOLO11 Architecture.png}
+    \caption{YOLO11 Model Architecture.}
+    \label{fig:yolo11-architecture}
+\end{figure}
+
+At its core, the YOLO architecture has three main components. The backbone is the primary feature extractor, typically a deep convolutional neural network (CNN) that processes the input image to generate rich feature maps. The neck component aggregates and refines these features across multiple scales, often employing structures like Feature Pyramid Networks (FPN) or Path Aggregation Networks (PANet) to enhance the model's ability to detect objects of varying sizes. Finally, the head is responsible for predicting bounding boxes, objectness scores, and class probabilities based on the processed features.
+
+\section{Deformable Convolution Networks (DCN)}
 The output feature $y(p_0)$ at location $p_0$ of a regular convolution is the weighted sum of features sampled at a fixed grid:
-\begin{equation}
-y(p_0) = \sum_{p_n \in \mathcal{R}} w(p_n) \cdot x(p_0 + p_n) \label{eq:standard_conv}
-\end{equation}
-where $w(p_n)$ are the kernel weights and $x$ is the input map \cite{lecun2015deep, dai2017deformableconvolutionalnetworks}.
 
-\textbf{Deformable Convolution (DCNv1)} 
+\begin{equation}
+    y(p_0) = \sum_{p_n \in \mathcal{R}} w(p_n) \cdot x(p_0 + p_n) \label{eq:standard_conv}
+\end{equation}
+
+where $w(p_n)$ are the kernel weights and $x$ is the input map~\cite{lecun2015deep, dai2017deformableconvolutionalnetworks}.
+
+\subsection{Deformable Convolution (DCNv1)} 
 Deformable convolution augments the regular grid $\mathcal{R}$ with 2D offsets $\{ \Delta p_n | n=1, \dots, N \}$, where $N = |\mathcal{R}|$. The equation transforms to:
-\begin{equation}
-y(p_0) = \sum_{p_n \in \mathcal{R}} w(p_n) \cdot x(p_0 + p_n + \Delta p_n)
-\end{equation}
-Here, the sampling is performed at the irregular locations $p_n + \Delta p_n$. These offsets allow the sampling points to shift to cover the semantic parts of an object—for instance, spreading along the wings of a rotated airplane rather than sampling the empty tarmac \cite{dai2017deformableconvolutionalnetworks}.
 
-\textbf{Bilinear Interpolation} 
-Since the learned offsets $\Delta p_n$ are typically fractional (continuous values), the pixel coordinates $p = p_0 + p_n + \Delta p_n$ do not align with the integer grid of the feature map. To compute the pixel value $x(p)$, bilinear interpolation is employed:
 \begin{equation}
-x(p) = \sum_{q} G(q, p) \cdot x(q)
+    y(p_0) = \sum_{p_n \in \mathcal{R}} w(p_n) \cdot x(p_0 + p_n + \Delta p_n)
 \end{equation}
+
+Here, the sampling is performed at the irregular locations $p_n + \Delta p_n$. These offsets allow the sampling points to shift to cover the semantic parts of an object—for instance, spreading along the wings of a rotated airplane rather than sampling the empty tarmac~\cite{dai2017deformableconvolutionalnetworks}.
+
+Since the learned offsets $\Delta p_n$ are typically fractional (continuous values), the pixel coordinates $p = p_0 + p_n + \Delta p_n$ do not align with the integer grid of the feature map. To compute the pixel value $x(p)$, bilinear interpolation is employed:
+
+\begin{equation}
+    x(p) = \sum_{q} G(q, p) \cdot x(q)
+\end{equation}
+
 where $q$ enumerates the integral spatial locations in the feature map (e.g., the 4 nearest neighbors), and $G(q, p)$ is the bilinear interpolation kernel:
 \[
 G(q, p) = \max(0, 1 - |q_x - p_x|) \cdot \max(0, 1 - |q_y - p_y|)
 \]
-This formulation ensures that the operation is fully differentiable, allowing the offsets $\Delta p_n$ to be learned via standard backpropagation \cite{dai2017deformableconvolutionalnetworks}.
+This formulation ensures that the operation is fully differentiable, allowing the offsets $\Delta p_n$ to be learned via standard backpropagation~\cite{dai2017deformableconvolutionalnetworks}.
 
-\textbf{Modulated Deformable Convolution (DCNv2)} 
-While DCNv1 allows the sampling points to move, DCNv2 introduces a \textbf{modulation mechanism} to further enhance feature extraction capability. It adds a learnable scalar weight $\Delta m_k$ to each sampling point, bounded between 0 and 1 via a sigmoid function. The formulation becomes:
+\subsection{Modulated Deformable Convolution (DCNv2)} 
+While DCNv1 allows the sampling points to move, DCNv2 introduces a modulation mechanism to further enhance feature extraction capability. It adds a learnable scalar weight $\Delta m_k$ to each sampling point, bounded between 0 and 1 via a sigmoid function. The formulation becomes:
+
 \begin{equation}
-y(p_0) = \sum_{p_n \in \mathcal{R}} w(p_n) \cdot x(p_0 + p_n + \Delta p_n) \cdot \Delta m_n
+    y(p_0) = \sum_{p_n \in \mathcal{R}} w(p_n) \cdot x(p_0 + p_n + \Delta p_n) \cdot \Delta m_n
 \end{equation}
+
 This modulation scalar $\Delta m_n$ allows the network to adjust the ``amplitude'' or importance of each sampling point. Crucially, it enables the network to ``turn off'' sampling points that fall on irrelevant background regions or noise, acting as a local attention mechanism within the convolution kernel.
 
 \subsection{Integration and Offset Learning}
-The offsets $\Delta p_n$ and modulation scalars $\Delta m_n$ are not fixed parameters; they are dynamic outputs of the network itself. They are generated by a separate, lightweight convolutional layer (typically a $3 \times 3$ conv) applied to the same input feature map $x$ \cite{dai2017deformableconvolutionalnetworks, zhu2019deformable}.
+The offsets $\Delta p_n$ and modulation scalars $\Delta m_n$ are not fixed parameters; they are dynamic outputs of the network itself. They are generated by a separate, lightweight convolutional layer (typically a $3 \times 3$ conv) applied to the same input feature map $x$~\cite{dai2017deformableconvolutionalnetworks, zhu2019deformable}.
 \begin{itemize}
     \item \textbf{Input:} A feature map $x$ of size $H \times W \times C$ serves as the shared source for both the detection head and the offset generator.
-    \item \textbf{Offset Generator:} A convolution layer produces a tensor of size $H \times W \times 3N$ (with $N$ denoting the kernel size, e.g., 9 for $3 \times 3$). The $3N$ channels encode the $x$-offset, $y$-offset, and modulation scalar $m$ for each kernel element, enabling the kernel to adapt to local geometry \cite{dai2017deformableconvolutionalnetworks, zhu2019deformable}.
+    \item \textbf{Offset Generator:} A convolution layer produces a tensor of size $H \times W \times 3N$ (with $N$ denoting the kernel size, e.g., 9 for $3 \times 3$). The $3N$ channels encode the $x$-offset, $y$-offset, and modulation scalar $m$ for each kernel element, enabling the kernel to adapt to local geometry~\cite{dai2017deformableconvolutionalnetworks, zhu2019deformable}.
     \item \textbf{Conditioning:} Because offsets are predicted from the same visual evidence they transform, the network can ``look'' at the object's morphology (e.g., a ship's elongated hull) and emit offsets that align the receptive field with that structure, achieving rotation and scale adaptability.
 \end{itemize}
 
 \section{Attention Mechanisms}
 
 \subsection{Fundamentals of Visual Attention}
-The concept of ``attention'' in computer vision draws inspiration from human cognitive systems, where the visual cortex selectively focuses on specific parts of a scene to process relevant information while ignoring the rest \cite{vaswani2017attention, xia2022visiontransformerdeformableattention}. In the context of Deep Learning, an attention mechanism is mathematically defined as a dynamic weight adjustment function. It computes a set of ``importance scores'' or weights based on the input features and applies these weights to emphasize informative regions (e.g., objects) and suppress irrelevant ones (e.g., background clutter) \cite{vaswani2017attention}.
+The concept of ``attention'' in computer vision draws inspiration from human cognitive systems, where the visual cortex selectively focuses on specific parts of a scene to process relevant information while ignoring the rest~\cite{vaswani2017attention, xia2022visiontransformerdeformableattention}. In the context of Deep Learning, an attention mechanism is mathematically defined as a dynamic weight adjustment function. It computes a set of ``importance scores'' or weights based on the input features and applies these weights to emphasize informative regions (e.g., objects) and suppress irrelevant ones (e.g., background clutter)~\cite{vaswani2017attention}.
 
 Standard attention mechanisms, such as the Self-Attention found in Transformers, compute the relationship between every pair of pixels in the feature map to capture global context.
+
 \begin{equation}
-\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V
+    \text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V
 \end{equation}
-While powerful, this global computation has a quadratic complexity of $O(H^2 W^2)$ with respect to the feature map size. For small object detection, which requires high-resolution feature maps to prevent feature vanishing, this computational cost is often prohibitive \cite{zhu2021deformabledetrdeformabletransformers, vaswani2017attention}.
+
+While powerful, this global computation has a quadratic complexity of $O(H^2 W^2)$ with respect to the feature map size. For small object detection, which requires high-resolution feature maps to prevent feature vanishing, this computational cost is often prohibitive~\cite{zhu2021deformabledetrdeformabletransformers, vaswani2017attention}.
 
 \subsection{Deformable Attention}
 Deformable Attention, introduced in Deformable DETR, addresses the computational bottleneck of standard attention by combining the sparse sampling principles of DCN with the relation modeling of Transformers. Instead of attending to all pixels in the image, each query element attends only to a small, fixed set of key sampling points learned from the data.
 
-\textbf{Mathematical Formulation} \\
 Given an input feature map $x$, a query element $q$ with content feature $z_q$, and a 2D reference point $p_q$, the Deformable Attention output is computed as:
 
 \begin{equation}
-\text{DeformAttn}(z_q, p_q, x) = \sum_{m=1}^{M} W_m \sum_{k=1}^{K} A_{mqk} \cdot W'_m x(p_q + \Delta p_{mqk})
+    \text{DeformAttn}(z_q, p_q, x) = \sum_{m=1}^{M} W_m \sum_{k=1}^{K} A_{mqk} \cdot W'_m x(p_q + \Delta p_{mqk})
 \end{equation}
 
 \begin{itemize}
-    \item \textbf{Sparse Sampling ($K$):} $k$ indexes a small set of sampling points (e.g., $K=4$). This reduces the complexity from quadratic $O(H^2 W^2)$ to linear $O(HW \cdot K)$, making it feasible for high-resolution maps needed for small objects \cite{zhu2021deformabledetrdeformabletransformers}.
-    \item \textbf{Reference Point ($p_q$):} Unlike standard attention which is location-agnostic, Deformable Attention is grounded at a reference point $p_q$. In the encoder, this is the grid location; in the decoder, it is predicted from object queries \cite{zhu2021deformabledetrdeformabletransformers}.
-    \item \textbf{Sampling Offsets ($\Delta p_{mqk}$):} Similar to DCN, the network predicts offsets $\Delta p_{mqk}$ from the query feature $z_q$. This allows the attention head to dynamically ``look'' for information in flexible locations relative to the reference point, adapting to the object's scale and shape \cite{zhu2021deformabledetrdeformabletransformers}.
-    \item \textbf{Attention Weights ($A_{mqk}$):} These are scalar weights predicted from $z_q$, normalized via softmax such that $\sum A_{mqk} = 1$. They determine the contribution of each sampled point \cite{zhu2021deformabledetrdeformabletransformers}.
+    \item \textbf{Sparse Sampling ($K$):} $k$ indexes a small set of sampling points (e.g., $K=4$). This reduces the complexity from quadratic $O(H^2 W^2)$ to linear $O(HW \cdot K)$, making it feasible for high-resolution maps needed for small objects~\cite{zhu2021deformabledetrdeformabletransformers}.
+    \item \textbf{Reference Point ($p_q$):} Unlike standard attention which is location-agnostic, Deformable Attention is grounded at a reference point $p_q$. In the encoder, this is the grid location; in the decoder, it is predicted from object queries~\cite{zhu2021deformabledetrdeformabletransformers}.
+    \item \textbf{Sampling Offsets ($\Delta p_{mqk}$):} Similar to DCN, the network predicts offsets $\Delta p_{mqk}$ from the query feature $z_q$. This allows the attention head to dynamically ``look'' for information in flexible locations relative to the reference point, adapting to the object's scale and shape~\cite{zhu2021deformabledetrdeformabletransformers}.
+    \item \textbf{Attention Weights ($A_{mqk}$):} These are scalar weights predicted from $z_q$, normalized via softmax such that $\sum A_{mqk} = 1$. They determine the contribution of each sampled point~\cite{zhu2021deformabledetrdeformabletransformers}.
 \end{itemize}
 
-\textbf{Synergy with Small Oriented Objects} \\
-The Deformable Attention mechanism acts as a \textbf{spatial filter}. By restricting attention to $K$ points, it inherently suppresses the vast majority of background noise pixels that would otherwise contribute to the weighted sum in global attention \cite{zhu2021deformabledetrdeformabletransformers, wang2023internimageexploringlargescalevision}. For small, oriented objects, the learnable offsets $\Delta p_{mqk}$ allow the model to concentrate its limited computational resources (``glances'') precisely on the object's key features (e.g., the bow and stern of a ship), regardless of its orientation, while ignoring the surrounding water or land clutter. This significantly enhances the feature representation of small targets that are otherwise prone to being washed out in standard aggregation operations.
+The Deformable Attention mechanism acts as a \textbf{spatial filter}. By restricting attention to $K$ points, it inherently suppresses the vast majority of background noise pixels that would otherwise contribute to the weighted sum in global attention~\cite{zhu2021deformabledetrdeformabletransformers, wang2023internimageexploringlargescalevision}. For small, oriented objects, the learnable offsets $\Delta p_{mqk}$ allow the model to concentrate its limited computational resources (``glances'') precisely on the object's key features (e.g., the bow and stern of a ship), regardless of its orientation, while ignoring the surrounding water or land clutter. This significantly enhances the feature representation of small targets that are otherwise prone to being washed out in standard aggregation operations.

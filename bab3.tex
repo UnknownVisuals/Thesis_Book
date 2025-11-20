@@ -66,15 +66,18 @@ The proposed modifications to the YOLO11 architecture focus on enhancing its cap
 
 \begin{figure}
     \centering
-    \includegraphics[width=0.8\textwidth]{pictures/Proposal Thesis - YOLO11 Architecture.png}
+    \includegraphics[width=1.0\textwidth]{pictures/Architecture Proposal.png}
     \caption{(a) Baseline YOLO11 Architecture. (b) Modified YOLO11 Architecture with DCN and Deformable Attention.}
     \label{fig:modified-yolo11-architecture}
 \end{figure}
 
 
 \subsection{Deformable Convolution Networks (DCN)}
+% rationale for DCN Integration
+
 
 \subsection{Deformable Attention}
+% rationale for Deformable Attention Integration
 
 \section{Performance Evaluation Metrics} 
 In this research, the performance of the modified YOLO11 model is evaluated using standard object detection metrics, primarily focusing on Mean Average Precision (mAP) at different Intersection over Union (IoU) thresholds. Others metrics such as Precision, Recall, and F1-Score are also computed to provide a comprehensive assessment of the model's detection capabilities, especially in handling oriented and small objects in aerial imagery. To quantify computational cost, we also track the number of model parameters (Params) and Floating Point Operations per Second (FLOPS), ensuring that accuracy improvements remain practical for real-world deployment.
