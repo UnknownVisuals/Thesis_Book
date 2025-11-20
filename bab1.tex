@@ -1,10 +1,234 @@
 %-----------------------------------------------------------------------------%
 \chapter{\babSatu}
-%-----------------------------------------------------------------------------
+%-----------------------------------------------------------------------------%
 \vspace*{0.2cm}
 \hyphenation{se-ve-ral}
 
 \section{Background}
-%Background merisikan judul, motivasi dan masalah serta yang diusulkan
-%dari paper
-With information theory led the mathematician Peter Shor to introduce a fast-factoring algorithm for a quantum computing, a quantum computing whose bits exist in superposition and can be entangled \cite{symetri}. Superposition and entanglement are useful for quantum computing and quantum key distribution (QKD).
+% Berisi rasional dari riset serta permasalahan yang diperkuat dengan sitasi dari literature (Paper conference/paper jurnal/textbook 3 tahun terakhir). Permasalahan dapat diambil dari penelitian/pekerjaan sebelumnya dalam 3 tahun terakhir. Latar belakang dibuat dalam 1-3 paragraf. Pada alinea terakhir, nyatakan kaitan antara Tesis yang akan dibuat dengan penelitian/pekerjaan sebelumnya. Berisi minimal 1.5 halaman. 
+
+% Object Detection (General Context)
+Object detection is a fundamental task in computer vision with numerous applications across various domains, including medical imaging \cite{Sobek2024}, autonomous driving \cite{Alahdal2024}, security surveillance \cite{Abba2024}, and aerial imaging \cite{Saini2025Report}. The primary objective of object detection is to identify and localize objects within an image or video frame by predicting bounding boxes and class labels for each detected object. Over the years, significant advancements have been driven by the development of deep learning algorithms, specifically Convolutional Neural Networks (CNNs). These advancements have led into two main categories of object detection methods: two-stage detectors and single-stage detectors. Two-stage detectors, such as Faster R-CNN, prioritize accuracy by first generating region proposals before classification \cite{NIPS2015_14bfa6bb}. In contrast, single-stage detectors, like YOLO (You Only Look Once) and SSD (Single Shot MultiBox Detector), optimize for speed by directly predicting bounding boxes and class probabilities in a single pass \cite{Liu_2016, redmon2016lookonceunifiedrealtime}. The YOLO family, in particular, has undergone rapid evolution leading to the recent YOLO11, which offers a superior balance between inference speed and detection accuracy \cite{khanam2024yolov11overviewkeyarchitectural}.
+
+% Small Object Detection (Problem Statement 1)
+Despite the impressive performance of single-stage detectors on general tasks, they frequently encounter difficulties when detecting small objects. Small objects typically defined as those occupying a minimal number of pixels present significant challenges due to limited visual information, susceptibility to occlusion, and background clutter \cite{Nikouei_2025}. This issue is particularly critical in aerial imagery analysis, where targets such as vehicles, buildings, and ships appear at varying scales \cite{YOLO-Air_10980347}. The primary challenges include the loss of critical features during CNN downsampling, the extreme class imbalance between small and large objects, and the difficulty in distinguishing small objects from noise. To mitigate these issues, researchers have explored techniques such as multi-scale feature fusion, context-aware modeling, and specialized data augmentation \cite{Cheng_2023}. Additionally, architectural enhancements like Feature Pyramid Networks (FPNs) and attention mechanisms have shown promise in recovering details necessary for small object detection \cite{app12188940}.
+
+% Oriented Object Detection (Problem Statement 2)
+Beyond scale, another critical dimension in aerial object detection is orientation. Unlike traditional detection methods that utilize axis-aligned Horizontal Bounding Boxes (HBB), oriented object detection employs Oriented Bounding Boxes (OBB) or polygons to capture objects more precisely. This capability is essential for aerial imagery, where objects often appear with arbitrary rotations due to the top-down perspective of the imaging sensor \cite{YOLO-Air_10980347}. Standard HBBs often introduce excessive background noise when enclosing rotated objects, confusing the classifier. Consequently, oriented detection methods incorporate angle regression, rotation-invariant feature extraction, and specialized loss functions to effectively handle these geometric variations \cite{yang2020r3detrefinedsinglestagedetector}.
+
+% Limitations (The "Gap")
+However, standard CNNs backbone of most modern detectors including YOLO possess inherent limitations when simultaneously addressing orientation and small scale. Standard convolution operations sample the input feature map using a fixed, regular grid. This rigid geometric structure lacks invariance to large geometric transformations such as rotation, scaling, or deformation \cite{dai2017deformableconvolutionalnetworks}. Consequently, when a small object is rotated or appears in a non-standard pose, the fixed receptive field of a standard convolution may fail to cover the object of interest effectively \cite{yuan2025empiricalstudymethodssmall, CHEN2024117194}. This limitation is particularly detrimental for small oriented objects, where semantic information is already scarce, and any misalignment in feature extraction can lead to detection failures \cite{rekavandi2023transformerssmallobjectdetection}.
+
+
+% Proposed Solution (The "Fix")
+To overcome these geometric and spatial limitations, advanced mechanisms such as Deformable Convolution Networks (DCN) and Attention Mechanisms have been proposed. Deformable convolution introduces learnable offsets to the regular sampling grid, allowing the receptive field to adaptively deform and align with the object's actual shape and orientation \cite{dai2017deformableconvolutionalnetworks, wang2023internimageexploringlargescalevision}. Furthermore, attention mechanisms, specifically Deformable Attention, enable the network to focus dynamically on the most relevant features while suppressing irrelevant background information \cite{zhu2021deformabledetrdeformabletransformers}. By adjusting the importance of different spatial locations, these mechanisms enhance the representation of small objects that might otherwise be overwhelmed by background clutter \cite{yuan2025empiricalstudymethodssmall}.
+
+% Thesis Statement
+Therefore, this research proposes the integration of Deformable Convolution and Deformable Attention mechanisms into the YOLO11 architecture to enhance feature extraction capabilities for oriented small object detection. By leveraging the adaptive sampling of deformable convolution and the context-aware focusing of deformable attention, the proposed method aims to address the geometric variations and feature scarcity inherent in aerial imagery. This thesis explores the synergistic effect of these components within the YOLO11 framework, aiming to achieve superior detection performance compared to existing state-of-the-art methods on challenging aerial and remote sensing datasets.
+
+\section{Problem Identification}
+% Berisi penjelasan permasalahan yang dihadapi untuk menyelesaikan penelitian, dalam 1 kalimat. Selanjutnya dapat dibuat dalam bentuk turunan masalah yang detail. Rumusan masalah ini berisi minimal ½ halaman.
+
+The primary problem addressed in this research is the main two challenges of detecting objects that are both tiny in scale and arbitrarily oriented within aerial imagery, which modern detectors struggle to handle due to the fixed geometric structure of standard Convolutional Neural Networks (CNNs).
+
+Specifically, the technical problems are identified as follows:
+
+\begin{enumerate}
+    \item \textbf{Geometric Rigidity of Standard Convolution} \\
+    Standard convolution operations rely on kernels with a fixed geometric shape. This rigid structure inherently restricts the network's ability to model complex geometric transformations. When objects in aerial imagery appear at arbitrary angles, the fixed receptive field of the convolution kernel fails to adapt, preventing the network from effectively capturing the features of rotated objects.
+    
+    \item \textbf{Feature Loss in Low-Resolution Targets} \\
+    Small objects in aerial imagery typically possess low resolution and limited feature information. As these images pass through the downsampling layers of standard CNN architectures, the already scarce spatial details are often lost or "washed out." Consequently, the detector fails to preserve the fine-grained information necessary to recognize these minute targets in deeper network layers.
+    
+    \item \textbf{Interference from Background Noise} \\
+    Due to their small scale and limited features, small objects are difficult to distinguish from environmental background noise. Standard feature extraction mechanisms often lack the ability to focus exclusively on the object of interest, causing the weak feature signals of small targets to be overwhelmed by stronger signals from complex backgrounds, leading to missed detections.
+    
+    \item \textbf{Inefficiency of Horizontal Bounding Boxes} \\
+    Traditional object detection relies on Horizontal Bounding Boxes (HBB). For oriented objects, HBBs are inefficient because they inevitably capture excessive background information along with the object. This inclusion of irrelevant background noise within the object proposal confuses the classification process and hinders the precise localization required for aerial targets.
+\end{enumerate}
+
+
+\section{Research Objective}
+% Berisi tujuan akhir penelitian atau objective penelitian yang akan dicapai serta dapat ditambahkan penjelasan lebih rinci atau ditulis lebih detail dalam bentuk point-point tujuan atau objective. Tujuan atau objective penelitian berisi minimal ½ halaman.
+
+The primary objective of this research is to develop an enhanced hybrid single-stage object detection framework based on YOLO11, specifically optimized for the two main challenges of oriented small object detection. This is achieved by addressing the geometric rigidity of standard convolutions and the lack of context-aware focusing in current baselines through the integration of adaptive feature extraction mechanisms.
+
+The specific objectives of this research are detailed as follows:
+
+\begin{enumerate}
+    \item \textbf{Integrate Deformable Convolution Modules for Geometric Adaptation} \\
+    The first objective is to strategically modify the standard convolutional layers within the YOLO11 architecture by integrating Deformable Convolution modules. This modification aims to enable the network to adaptively adjust its receptive field based on the scale and orientation of target objects. By learning offset values for the sampling grid, the model will capture the geometric features of rotated objects more effectively than the fixed-grid convolutions used in the baseline model, directly addressing the issue of geometric rigidity.
+
+    \item \textbf{Implement Deformable Attention for Robust Feature Fusion} \\
+    The second objective is to enhance the feature fusion process by incorporating Deformable Attention mechanisms. Unlike standard attention modules which often treat spatial locations uniformly, this mechanism is designed to focus computational resources sparsely on the most informative key points of small objects. This objective seeks to demonstrate that dynamic, sparse attention can effectively suppress the background clutter and noise inherent in aerial imagery, therefore preserving the weak feature signals of small targets.
+
+    \item \textbf{Validate a Hybrid Architecture for Oriented Bounding Box (OBB) Tasks} \\
+    The third objective is to design and validate a cohesive hybrid architecture that synergizes the spatial adaptability of Deformable Convolution with the context-aware focusing of Deformable Attention. The goal is to optimize the detection head for Oriented Bounding Box (OBB) prediction, ensuring that the enhanced feature representation translates into precise rotation angle regression and minimizes the localization errors typically associated with axis-aligned approaches.
+
+    \item \textbf{Benchmark Performance against State-of-the-Art Methods} \\
+    The final objective is to rigorously evaluate the proposed method using large-scale aerial imagery datasets, specifically DOTA and SODA dataset. The evaluation will quantify improvements using standard metrics including Mean Average Precision (mAP), Precision, Recall, and F1-Score. Furthermore, the research will analyze the trade-off between accuracy gains and model complexity (Number of Parameters and FLOPs) to ensure the proposed enhancements remain practical for real-world deployment compared to the baseline YOLO11.
+\end{enumerate}
+
+
+
+
+
+\section{Research Method}
+
+This research proposes a novel single-stage object detection framework that enhances the YOLO11 architecture by integrating two advanced adaptive feature extraction mechanisms: Deformable Convolutional Networks (DCN) and Deformable Attention. These methods are selected to specifically address the two challenges of geometric variations in oriented objects and feature scarcity in small objects.
+
+\subsection{Deformable Convolutional Networks (DCN)}
+Standard Convolutional Neural Networks (CNNs) are inherently limited in modeling geometric transformations due to the fixed geometric structures of their building modules. A standard convolution unit samples the input feature map at fixed locations (e.g., a regular $3 \times 3$ grid) and pools features with a static receptive field. This rigidity is suboptimal for oriented object detection, where targets may appear with arbitrary rotation, scaling, or deformation.
+
+To overcome this limitation, this research employs Deformable Convolution, as introduced by Dai et al. \cite{dai2017deformableconvolutionalnetworks}. The core idea is to augment the spatial sampling locations in the convolution modules with learnable offsets.
+
+In a standard 2D convolution, the output feature map $y$ at a specific location $p_0$ is computed as:
+
+\begin{equation}
+    y(p_0) = \sum_{p_n \in \mathcal{R}} w(p_n) \cdot x(p_0 + p_n)
+\end{equation}
+
+where $\mathcal{R}$ defines the regular sampling grid (e.g., $\mathcal{R} = \{(-1, -1), (-1, 0), \dots, (1, 1)\}$ for a $3 \times 3$ kernel) and $w(p_n)$ represents the weights.
+
+In Deformable Convolution, the regular grid $\mathcal{R}$ is augmented with offsets $\{\Delta p_n | n=1, \dots, N\}$, where $N = |\mathcal{R}|$. The equation is reformulated as:
+
+\begin{equation}
+    y(p_0) = \sum_{p_n \in \mathcal{R}} w(p_n) \cdot x(p_0 + p_n + \Delta p_n)
+\end{equation}
+
+Here, the sampling is performed on the irregular and offset locations $p_n + \Delta p_n$. The offsets $\Delta p_n$ are obtained by applying a separate convolutional layer over the same input feature map, allowing the deformation to be conditioned on the input features in a local, dense, and adaptive manner.
+
+Since the learned offset $\Delta p_n$ is typically fractional, the pixel value $x(p)$ at an arbitrary location $p = p_0 + p_n + \Delta p_n$ is computed via bilinear interpolation:
+
+\begin{equation}
+    x(p) = \sum_{q} G(q, p) \cdot x(q)
+\end{equation}
+
+where $q$ enumerates all integral spatial locations in the feature map $x$, and $G(\cdot, \cdot)$ is the bilinear interpolation kernel. This differentiability allows the offsets to be learned end-to-end via standard back-propagation.
+
+\subsection{Deformable Attention Mechanism}
+While DCN improves geometric adaptability, detecting small objects in cluttered aerial images requires a mechanism to focus on sparse, informative key elements. Standard Transformer attention modules suffer from slow convergence and high computational complexity because they look over all possible spatial locations in the image feature maps.
+
+To mitigate these issues, this research integrates the Deformable Attention module proposed by Zhu et al. \cite{zhu2021deformabledetrdeformabletransformers}. This mechanism combines the sparse spatial sampling of deformable convolution with the relation modeling capability of Transformers.
+
+Unlike standard Multi-Head Self-Attention (MHSA) which has quadratic complexity relative to pixel numbers, the Deformable Attention module only attends to a small set of key sampling points around a reference point.
+
+Given an input feature map $x \in \mathbb{R}^{C \times H \times W}$, a query element $q$ with content feature $z_q$, and a 2-D reference point $p_q$, the Deformable Attention feature is calculated as:
+\begin{equation}
+    \text{DeformAttn}(z_q, p_q, x) = \sum_{m=1}^{M} W_m \left[ \sum_{k=1}^{K} A_{mqk} \cdot W'_m x(p_q + \Delta p_{mqk}) \right]
+\end{equation}
+where:
+\begin{itemize}
+    \item $m$ indexes the attention head ($M$ heads total).
+    \item $k$ indexes the sampled keys ($K$ keys total), where $K \ll HW$.
+    \item $\Delta p_{mqk}$ and $A_{mqk}$ denote the sampling offset and attention weight of the $k^{th}$ sampling point, respectively.
+    \item $A_{mqk}$ is normalized such that $\sum_{k=1}^{K} A_{mqk} = 1$.
+\end{itemize}
+
+Similar to DCN, the term $x(p_q + \Delta p_{mqk})$ is computed using bilinear interpolation. This design allows the model to focus on a small, fixed number of keys for each query, significantly reducing computational complexity to $O(2N_q C^2 + \min(HWC^2, N_q K C^2))$, which is linear with respect to the spatial size.
+
+
+\section{Hypothesis}
+% Berisi prediksi hasil dan dasar prediksi yang digunakan...
+
+Based on the structural limitations of standard CNNs and the proposed architectural enhancements, this research posits the following hypotheses regarding the performance of the modified YOLO11 framework:
+
+\begin{enumerate}
+    \item \textbf{Improved Accuracy for Oriented Objects} \\
+    Integrating Deformable Convolution modules into the YOLO11 backbone will significantly improve the detection accuracy of oriented objects compared to the baseline model. This prediction relies on the ability of Deformable Convolution to learn adaptive sampling offsets, allowing the receptive field to align dynamically with the rotation and geometric variations of aerial targets \cite{dai2017deformableconvolutionalnetworks}.
+
+    \item \textbf{Enhanced Small Object Detection} \\
+    Implementing Deformable Attention mechanisms will measurably increase the detection performance for small objects in cluttered environments. By focusing computational resources on a sparse set of key sampling points rather than the entire feature map, this mechanism is expected to suppress background noise and preserve the weak feature signals of small targets more effectively than the baseline architecture \cite{zhu2021deformabledetrdeformabletransformers}.
+
+    \item \textbf{Synergistic Performance of the Hybrid Architecture} \\
+    The hybrid combination of Deformable Convolution and Deformable Attention is expected to yield a synergistic effect, achieving a superior balance between accuracy (mAP) and computational efficiency. The proposed architecture is expected to outperform both the baseline YOLO11 and single-modification variants on the DOTA and SODA datasets by simultaneously addressing geometric misalignment and feature scarcity without incurring the quadratic complexity of standard Transformers.
+\end{enumerate}
+
+
+
+
+\section{Research Methodology}
+% Berisi urutan langkah – langkah untuk menyelesaikan penelitian beserta teknik/metoda disetiap langkah...
+
+The research methodology employed in this thesis follows a systematic experimental approach, structured around distinct Work Packages (WP). This structure ensures a logical progression from theoretical understanding to practical implementation and final evaluation. The overall flow of the research is visualized in Figure \ref{fig:research_flowchart}.
+
+\begin{figure}[ht]
+    \centering
+    % \includegraphics[width=0.8\textwidth]{images/research_flowchart.png} 
+    \fbox{\begin{minipage}{0.8\textwidth}
+        \centering
+        \vspace{2cm}
+        [Insert Research Methodology Flowchart Here]
+        \vspace{2cm}
+    \end{minipage}}
+    \caption{Research Methodology Flowchart}
+    \label{fig:research_flowchart}
+\end{figure}
+
+The specific Work Packages (WP) for this research are outlined as follows:
+
+\begin{itemize}
+    \item \textbf{WP 1: Comprehensive Literature Review} \\
+    This work package involves an in-depth analysis of existing literature to establish a strong theoretical foundation. The review focuses on the evolution of the YOLO architecture up to YOLO11, the mathematical principles of Deformable Convolutional Networks (DCN), and the mechanics of Deformable Attention. Furthermore, it explores current state-of-the-art methods for Oriented Object Detection (OBB) to identify specific gaps in detecting small, rotated targets in aerial imagery.
+
+    \item \textbf{WP 2: Dataset Acquisition and Preprocessing} \\
+    This package focuses on preparing the data required for training and evaluation.
+    \begin{enumerate}
+        \item \textbf{Collection:} Acquiring standard aerial imagery datasets such as DOTA (Dataset for Object deTection in Aerial images) and SODA (Small Object Detection dAtaset).
+        \item \textbf{Formatting:} Converting annotation labels from polygon or complex formats into the YOLO OBB format (center-point, width, height, angle).
+        \item \textbf{Augmentation:} Implementing data augmentation strategies including random rotation, scaling, mosaic, and mixup to increase dataset diversity and robustness against geometric variations.
+    \end{enumerate}
+
+    \item \textbf{WP 3: Architectural Design and Modification} \\
+    This is the core development phase where the YOLO11 baseline is structurally enhanced.
+    \begin{enumerate}
+        \item \textbf{DCN Integration:} Replacing standard convolutional layers in the Backbone and Neck with Deformable Convolution modules to enable adaptive receptive field learning.
+        \item \textbf{Attention Integration:} Designing the replacement of the standard C2PSA block with the Deformable Attention mechanism to improve feature focusing on small targets.
+        \item \textbf{Hybrid Design:} Validating the connection strategies between these new modules to ensure stable gradient flow.
+    \end{enumerate}
+
+    \item \textbf{WP 4: Model Implementation and Training} \\
+    In this work package, the designed architecture is implemented using the PyTorch framework. This involves initializing the model weights (transfer learning from COCO), defining the specialized loss functions for oriented bounding box regression (PIoU or OBB loss), and executing the training loop. Hyperparameter tuning (learning rate, momentum, weight decay) is performed in a GPU-accelerated environment to ensure optimal convergence.
+
+    \item \textbf{WP 5: Testing and Performance Evaluation} \\
+    This package focuses on quantitatively evaluating the trained model using the held-out test set. The performance is assessed using standard metrics, specifically Mean Average Precision (mAP) for Oriented Bounding Boxes (mAP50 and mAP50-95). Additionally, computational efficiency is measured via Inference Speed (FPS) and Floating Point Operations (FLOPs) to benchmark against the baseline YOLO11.
+
+    \item \textbf{WP 6: Ablation Study and Analysis} \\
+    To validate the individual contributions of the proposed enhancements, this WP involves conducting ablation studies. Separate models will be trained with single modifications (e.g., YOLO11+DCN only, YOLO11+Deformable Attention only) to isolate the performance gains attributed to Deformable Convolution versus Deformable Attention. The analysis will also include qualitative visualization of detection results to identify improvements in handling background clutter and rotation.
+
+    \item \textbf{WP 7: Conclusion and Reporting} \\
+    The final work package involves synthesizing the experimental data into a coherent conclusion. It includes documenting the findings, discussing limitations, and suggesting directions for future research in the final thesis report.
+\end{itemize}
+
+\section{Timeline}
+% Bagian ini berisikan jadwal pengerjaan. Jadwal pengerjaan merupakan jadwal kegiatan penelitian, diantaranya studi literatur, perancangan desain sitem dan model, simulasi, implementasi rancangan, pembuatan prototype, sampai dengan pengujian dan analisis, termasuk membuat luaran penelitian dalam bentuk publikasi. Jadwal dapat ditulis dalam bentuk tabel. Tingkat kedetilan jadwal dapat dalam bulan maupun minggu, dengan rentang waktu sesuai dengan kebutuhan dan target.
+
+The research activities are scheduled to be completed within a period of six months. The timeline is structured to ensure that each phase of the methodology is given sufficient time for thorough execution and analysis. Table \ref{tab:timeline} details the schedule of activities.
+
+\begin{table}[ht]
+    \centering
+    \caption{Research Timeline}
+    \label{tab:timeline}
+    \begin{tabular}{|c|l|c|c|c|c|c|c|}
+        \hline
+        \multirow{2}{*}{\textbf{No.}} & \multicolumn{1}{c|}{\multirow{2}{*}{\textbf{Activity}}} & \multicolumn{6}{c|}{\textbf{Month}} \\ \cline{3-8} 
+         & & \textbf{1} & \textbf{2} & \textbf{3} & \textbf{4} & \textbf{5} & \textbf{6} \\ \hline
+        1 & Literature Study and Proposal & \cellcolor{green!50} & & & & & \\ \hline
+        2 & Dataset Collection and Preprocessing & \cellcolor{green!50} & \cellcolor{green!50} & & & & \\ \hline
+        3 & System Design and Architecture Modification & & \cellcolor{green!50} & \cellcolor{green!50} & & & \\ \hline
+        4 & Implementation and Model Training & & & \cellcolor{green!50} & \cellcolor{green!50} & & \\ \hline
+        5 & Testing, Evaluation, and Ablation Study & & & & \cellcolor{green!50} & \cellcolor{green!50} & \\ \hline
+        6 & Result Analysis and Conclusion & & & & & \cellcolor{green!50} & \cellcolor{green!50} \\ \hline
+        7 & Thesis Writing and Reporting & & & & & \cellcolor{green!50} & \cellcolor{green!50} \\ \hline
+    \end{tabular}
+\end{table}
+
+\begin{itemize}
+    \item \textbf{Month 1:} Focus on understanding the theoretical background, reviewing related works, and finalizing the research proposal. Initial dataset acquisition begins.
+    \item \textbf{Month 2:} Completion of dataset preprocessing (augmentation, formatting). Start of the architectural design phase, identifying where to integrate DCN and Attention modules.
+    \item \textbf{Month 3:} Finalizing the system design. Beginning the implementation of the modified YOLO11 model in code and starting initial training runs.
+    \item \textbf{Month 4:} Intensive model training and hyperparameter tuning. Conducting the first round of evaluations on the validation set.
+    \item \textbf{Month 5:} Performing comprehensive testing on the test set. Conducting ablation studies to isolate the effects of specific modules. Beginning the analysis of results.
+    \item \textbf{Month 6:} Finalizing the analysis. Writing the complete thesis report, preparing for the defense, and drafting a paper for publication.
+\end{itemize}
+
