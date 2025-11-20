@@ -74,10 +74,14 @@ The proposed modifications to the YOLO11 architecture focus on enhancing its cap
 
 \subsection{Deformable Convolution Networks (DCN)}
 % rationale for DCN Integration
+To solve the challenges of detecting oriented and small objects in aerial images, this research integrates Deformable Convolutional Networks (DCN) into the backbone and neck of the YOLO11 architecture, replacing the C2k3 modules. These modules are responsible for feature extraction and multi-scale feature fusion, which are critical for accurate object detection. By  replacing 
+
+Deformable Convolutional Networks (DCN) enhance the modeling capacity of standard convolutional layers by introducing learnable offsets to the sampling locations in the convolution operation~\cite{dai2017deformableconvolutionalnetworks}. This allows the network to adapt its receptive field dynamically to the geometric variations of objects, which is particularly beneficial for detecting oriented and small objects in aerial images. By integrating DCN into the backbone and neck of YOLO11, the model gains improved flexibility in feature extraction, enabling it to better capture the spatial transformations and fine details of challenging targets.
 
 
 \subsection{Deformable Attention}
 % rationale for Deformable Attention Integration
+Attention mechanisms have revolutionized the field of deep learning, particularly in natural language processing and computer vision. They enable models to dynamically focus on the most relevant parts of the input data, enhancing feature representation and improving performance on various tasks~\cite{vaswani2017attention, dosovitskiy2021imageworth16x16words}. In the context of object detection, attention mechanisms help models to better capture contextual relationships and spatial dependencies, which is especially beneficial for detecting small and oriented objects in complex scenes~\cite{rekavandi2023transformerssmallobjectdetection}. Incorporating Deformable Attention into the detection head of YOLO11 allows the model to selectively attend to pertinent features while accounting for geometric deformations, thereby improving detection accuracy and robustness.
 
 \section{Performance Evaluation Metrics} 
 In this research, the performance of the modified YOLO11 model is evaluated using standard object detection metrics, primarily focusing on Mean Average Precision (mAP) at different Intersection over Union (IoU) thresholds. Others metrics such as Precision, Recall, and F1-Score are also computed to provide a comprehensive assessment of the model's detection capabilities, especially in handling oriented and small objects in aerial imagery. To quantify computational cost, we also track the number of model parameters (Params) and Floating Point Operations per Second (FLOPS), ensuring that accuracy improvements remain practical for real-world deployment.
