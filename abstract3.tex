@@ -2,11 +2,10 @@
 \chapter*{abstract}
 \vspace*{-0.3cm}
 
-\indent \indent 
-Quantum technology in recent decades is attracting great attentions, especially on the quantum computing, quantum communications, and quantum key distribution (QKD), which are candidates for the sixth generation of telecommunications (6G) in 2030 and beyond.
+\indent \indent Object detection in aerial imagery faces critical challenges, primarily due to the prevalence of small, densely packed targets and arbitrary orientations that defy the fixed geometric assumptions of standard Convolutional Neural Networks (CNNs). This research proposes an enhanced single-stage detector, YOLO11-DCN-DA, designed to overcome these limitations by integrating adaptive feature extraction mechanisms. To address geometric rigidity, the standard C3k2 modules in the backbone and neck are replaced with C3k2\_DCN blocks incorporating Modulated Deformable Convolution (DCNv2), enabling the network to dynamically adjust its receptive field to align with rotated objects. Additionally, to mitigate feature scarcity in small targets, a Deformable Attention block is introduced following the Spatial Pyramid Pooling - Fast (SPPF) module, allowing the model to sparsely attend to relevant key points while suppressing background clutter. The proposed framework is evaluated on the challenging DOTA and SODA-A datasets, focusing on Oriented Bounding Box (OBB) tasks. The study hypothesizes that this synergistic combination will yield superior detection accuracy (mAP) for small and oriented objects compared to the baseline YOLO11, while maintaining a viable computational cost (FLOPs) for practical deployment.
 
 \vspace{0.2in}
-\noindent\textbf{Keywords:} CSS, Decoherence, Depolarizing Channels, Red-Muller codes, QWER.
+\noindent\textbf{Keywords:} Deformable Convolution, Deformable Attention, Oriented Bounding Box, Small Object Detection, YOLO11.
 
 
 \newpage

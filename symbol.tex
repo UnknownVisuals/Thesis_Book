@@ -2,9 +2,36 @@
 \chapter*{LIST OF SYMBOL}
 %-----------------------------------------------------------------------------%
 \begin{longtable}{lll}
-$\alpha$            & Constant number complex\\
-$\beta$             & Constant number complex\\
-$\rho$              & The density operator\\
-$\rho^\prime$       & Evolution of quantum system\\
-
+$A_{mqk}$         & Attention weight for the sampled location $(m,q,k)$ \\
+$AP_i$            & Average Precision for class i \\
+$B$               & Batch size \\
+$B_i$             & Number of biases in layer i \\
+$C$               & Number of channels in the feature map \\
+$d_k$             & Dimension of the key vector \\
+$\Delta m_n$      & Modulation scalar weighting each deformed sample \\
+$\Delta p_{mqk}$  & Attention offset for $k^{th}$ key in head $m$ \\
+$\Delta p_n$      & Deformable offset added to the sampling grid \\
+$F_i$             & Number of floating-point operations in layer i \\
+$FN$              & False Negatives \\
+$FP$              & False Positives \\
+$G(q, p)$         & Bilinear interpolation kernel \\
+$H$               & Height of the feature map \\
+$K$               & Number of sampling keys per attention head \\
+$L$               & Number of layers \\
+$M$               & Number of attention heads in the deformable module \\
+$N$               & Number of classes (in mAP context) \\
+$p_q$             & Reference point used by Deformable Attention for each query \\
+$Q$               & Query matrix in attention mechanism \\
+$\mathcal{R}$     & Regular sampling grid of a convolution kernel \\
+$S$               & Stride of the feature map \\
+$TP$              & True Positives \\
+$V$               & Value matrix in attention mechanism \\
+$W$               & Width of the feature map \\
+$W_i$             & Number of weights in layer i \\
+$W_m$             & Output projection matrix of attention head $m$ \\
+$W'_m$            & Value projection matrix of attention head $m$ \\
+$w(p_n)$          & Learned convolution weight at offset $p_n$ \\
+$x(p)$            & Feature value sampled at position $p$ (possibly fractional) \\
+$y(p_0)$          & Output feature at spatial location $p_0$ \\
+$z_q$             & Content feature of the query element $q$ \\
 \end{longtable}
